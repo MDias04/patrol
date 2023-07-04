@@ -73,36 +73,31 @@ jobs:
           flutter config --android-sdk "$HOME/android-sdk"
 
       - name: Build tests
-        run: patrol build android \
-          --exclude integration_test/example_test.dart \
-          --exclude integration_test/open_app_test.dart \
-          --exclude integration_test/permissions_location_test.dart \
-          --exclude integration_test/webview_hackernews_test.dart \
-          --exclude integration_test/webview_stackoverflow_test.dart \
-          --exclude integration_test/webview_leancode_test.dart \
-          --exclude integration_test/service_bluetooth_test.dart \
-          --exclude integration_test/service_airplane_mode_test.dart
+        run: |
+          patrol build android \
+            --exclude integration_test/example_test.dart \
+            --exclude integration_test/open_app_test.dart \
+            --exclude integration_test/permissions_location_test.dart \
+            --exclude integration_test/webview_hackernews_test.dart \
+            --exclude integration_test/webview_stackoverflow_test.dart \
+            --exclude integration_test/webview_leancode_test.dart \
+            --exclude integration_test/service_bluetooth_test.dart \
+            --exclude integration_test/service_airplane_mode_test.dart
       
       - name: Run emulator and tests
         working-directory: packages/patrol/example/android
         run: ./gradlew app:mainGroupDebugAndroidTest -Ptarget=${{ github.workspace }}/packages/patrol/example/integration_test/test_bundle.dart -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
 
       - name: Merge XML reports
-        if: true
+        if: always()
         working-directory: build/app/outputs/androidTest-results/managedDevice/pixel2api33
         run: |
           npm install -g junit-report-merger
           jrm ./pixel2api33.xml "./*.xml"
-
-      - name: Merge XML reports
-        if: true
-        working-directory: build/app/outputs/androidTest-results/managedDevice/pixel5api34
-        run: |
-          jrm ../pixel5api34.xml "./*.xml"
       
       - name: Publish test report to summary
         uses: mikepenz/action-junit-report@v3
-        if: true
+        if: always()
         with:
           check_name: Patrol tests
           report_paths: ${{ github.workspace }}/packages/patrol/example/build/app/outputs/androidTest-results/managedDevice/*.xml
@@ -110,7 +105,7 @@ jobs:
           include_passed: true
 
       - name: Generate test report as check run
-        if: true
+        if: always()
         uses: dorny/test-reporter@v1
         with:
           name: Patrol Tests
@@ -119,7 +114,7 @@ jobs:
           fail-on-error: false
 
       - name: Upload XML test report to artifacts
-        if: true
+        if: always()
         uses: actions/upload-artifact@v3
         with:
           name: XML test report
