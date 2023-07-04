@@ -66,7 +66,7 @@ jobs:
       - name: Install SDKs with sdkmanager
         run: |
           yes | sdkmanager --licenses
-          sdkmanager.bat --licenses
+          yes | /Users/runner/Library/Android/sdk/sdkmanager.bat --licenses
 
           echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
