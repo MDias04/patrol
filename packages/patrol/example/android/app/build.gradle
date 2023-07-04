@@ -56,6 +56,25 @@ android {
 
     testOptions {
         execution "ANDROIDX_TEST_ORCHESTRATOR"
+        managedDevices {
+            devices {
+                pixel2api33 (com.android.build.api.dsl.ManagedVirtualDevice) {
+                device = "Pixel 2"
+                apiLevel = 33
+                systemImageSource = "google"
+                }
+                pixel5api34 (com.android.build.api.dsl.ManagedVirtualDevice) {
+                device = "Pixel 5"
+                apiLevel = 34
+                systemImageSource = "google"
+                }
+            }
+            groups {
+                main {
+                    targetDevices.addAll(devices.pixel2api33, devices.pixel5api34)
+                }
+            }
+        }
     }
 }
 

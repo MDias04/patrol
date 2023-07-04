@@ -1,20 +1,17 @@
-name: test android emulator 2
+name: test gradle managed devices
 
 on:
   workflow_dispatch:
 
-env:
-  ANDROID_IMAGE: system-images;android-31;default;x86_64
-
 jobs:
   main:
-    name: Test on Android Emulator
+    name: Test on Gradle Managed Devices
     runs-on: macos-latest
     timeout-minutes: 60
 
     defaults:
       run:
-        working-directory: ${{ github.workspace }}/packages/patrol/example
+        working-directory: packages/patrol/example
 
     steps:
       - name: Clone repository
@@ -23,7 +20,7 @@ jobs:
           lfs: true
 
       - name: Set up Java
-        run: export JAVA_HOME="$JAVA_HOME_11_X64"
+        run: export JAVA_HOME="$JAVA_HOME_17_X64"
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -34,22 +31,9 @@ jobs:
       - name: Preload Flutter artifacts
         run: flutter precache
 
-      - name: Install patrol_cli
-        run: |
-          dart pub global activate \
-            --source git https://github.com/leancodepl/patrol.git \
-            --git-path packages/patrol_cli \
-            --git-ref patrol_cli-v<your_desired_patrol_cli_version>
-
-      - name: Download TestButler
-        run: curl -f -o ~/test-butler-2.2.1.apk https://repo1.maven.org/maven2/com/linkedin/testbutler/test-butler-app/2.2.1/test-butler-app-2.2.1.apk
-
-      - name: Install ffmpeg
-        uses: FedericoCarboni/setup-ffmpeg@v2
-        id: setup-ffmpeg
-
-      - name: Install sponge
-        run: brew install sponge 1>/dev/null 2>&1
+      - name: Set up Patrol CLI
+        working-directory: packages/patrol_cli
+        run: dart pub global activate --source path . && patrol
 
       - name: Generate gradlew
         run: |
@@ -79,51 +63,60 @@ jobs:
       - name: Install SDKs with sdkmanager
         run: |
           yes | sdkmanager --licenses > /dev/null
-          sdkmanager "emulator" > /dev/null
-          sdkmanager "platform-tools" > /dev/null
-          sdkmanager "$ANDROID_IMAGE" > /dev/null
-          sdkmanager "build-tools;30.0.3" > /dev/null
-
-          echo "$HOME/android-sdk/emulator" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
 
           echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
           flutter config --android-sdk "$HOME/android-sdk"
 
-      - name: Create and configure emulator
-        run: |
-          avdmanager -s create avd -n MyAVD -k "$ANDROID_IMAGE"
-          echo "hw.gpu.enabled=yes" >> ~/.android/avd/MyAVD.avd/config.ini
-          echo "hw.gpu.mode=swiftshader_indirect" >> ~/.android/avd/MyAVD.avd/config.ini
-          echo "hw.ramSize=4096" >> ~/.android/avd/MyAVD.avd/config.ini
-          echo "disk.dataPartition.size=6G" >> ~/.android/avd/MyAVD.avd/config.ini
-          echo "hw.camera.back=virtualscene" >> ~/.android/avd/MyAVD.avd/config.ini
-          echo "vm.heapSize=576" >> ~/.android/avd/MyAVD.avd/config.ini
-          echo "hw.lcd.density=440" >> ~/.android/avd/MyAVD.avd/config.ini
-          echo "hw.lcd.height=2220" >> ~/.android/avd/MyAVD.avd/config.ini
-          echo "hw.lcd.width=1080" >> ~/.android/avd/MyAVD.avd/config.ini
-
+      - name: Build tests
+        run: patrol build android \
+          --exclude integration_test/example_test.dart \
+          --exclude integration_test/open_app_test.dart \
+          --exclude integration_test/permissions_location_test.dart \
+          --exclude integration_test/webview_hackernews_test.dart \
+          --exclude integration_test/webview_stackoverflow_test.dart \
+          --exclude integration_test/webview_leancode_test.dart \
+          --exclude integration_test/service_bluetooth_test.dart \
+          --exclude integration_test/service_airplane_mode_test.dart
+      
       - name: Run emulator and tests
-        run: ${{ github.workspace }}/.github/scripts/run-emulator-and-tests.sh
+        working-directory: packages/patrol/example/android
+        run: ./gradlew app:mainGroupDebugAndroidTest -Ptarget=${{ github.workspace }}/packages/patrol/example/integration_test/test_bundle.dart
 
-      - name: Upload flutter logs to artifacts
-        if: always()
+      - name: Merge XML reports
+        if: true
+        working-directory: build/app/outputs/androidTest-results/managedDevice/pixel2api33
+        run: |
+          npm install -g junit-report-merger
+          jrm ./pixel2api33.xml "./*.xml"
+
+      - name: Merge XML reports
+        if: true
+        working-directory: build/app/outputs/androidTest-results/managedDevice/pixel5api34
+        run: |
+          jrm ../pixel5api34.xml "./*.xml"
+      
+      - name: Publish test report to summary
+        uses: mikepenz/action-junit-report@v3
+        if: true
+        with:
+          check_name: Patrol tests
+          report_paths: ${{ github.workspace }}/packages/patrol/example/build/app/outputs/androidTest-results/managedDevice/*.xml
+          detailed_summary: true
+          include_passed: true
+
+      - name: Generate test report as check run
+        if: true
+        uses: dorny/test-reporter@v1
+        with:
+          name: Patrol Tests
+          path: ${{ github.workspace }}/packages/patrol/example/build/app/outputs/androidTest-results/managedDevice/*.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Upload XML test report to artifacts
+        if: true
         uses: actions/upload-artifact@v3
         with:
-          name: flutter-logs
-          path: flutter-logs
-
-      - name: Upload tests summary to artifacts
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: tests-summary
-          path: tests-summary
-
-      - name: Upload screenrecordings to artifacts
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: screenrecord.mp4
-          path: screenrecords/screenrecord.mp4
+          name: XML test report
+          path: ${{ github.workspace }}/packages/patrol/example/test_artifacts/results.xml
