@@ -85,7 +85,7 @@ jobs:
       
       - name: Run emulator and tests
         working-directory: packages/patrol/example/android
-        run: ./gradlew app:mainGroupDebugAndroidTest -Ptarget=${{ github.workspace }}/packages/patrol/example/integration_test/test_bundle.dart
+        run: ./gradlew app:mainGroupDebugAndroidTest -Ptarget=${{ github.workspace }}/packages/patrol/example/integration_test/test_bundle.dart -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
 
       - name: Merge XML reports
         if: true
