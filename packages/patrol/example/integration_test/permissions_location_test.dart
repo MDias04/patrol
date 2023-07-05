@@ -19,6 +19,7 @@ void main() {
         await $.native.selectCoarseLocation();
         await $.native.selectFineLocation();
         await $.native.grantPermissionWhenInUse();
+        await $.pump(Duration(seconds: 2));
         await $.native.tap(Selector(text: "OK"));
       }
       await $.pump();
