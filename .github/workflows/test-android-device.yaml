@@ -82,7 +82,7 @@ jobs:
           echo "EXCLUDED_TESTS=$target_paths" >> "$GITHUB_ENV"
 
       - name: patrol build android
-        run: patrol build android --verbose
+        run: patrol build android -t integration_test/permissions_location_test.dart --verbose
 
       - name: Upload APKs to Firebase Test Lab and wait for tests to finish
         id: tests_step
