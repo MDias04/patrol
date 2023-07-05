@@ -64,11 +64,6 @@ android {
                 systemImageSource = "google"
                 }
             }
-            groups {
-                main {
-                    targetDevices.addAll(devices.pixel2api33)
-                }
-            }
         }
     }
 }

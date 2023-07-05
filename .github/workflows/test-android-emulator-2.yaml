@@ -49,6 +49,7 @@ jobs:
           kill $buildpid
 
       - name: Install cmdline-tools
+        if: false
         run: |
           cd
           curl -LO https://dl.google.com/android/repository/commandlinetools-mac-9477386_latest.zip
@@ -64,13 +65,7 @@ jobs:
           echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
 
       - name: Install SDKs with sdkmanager
-        run: |
-          yes | sdkmanager --licenses
-          yes | /Users/runner/Library/Android/sdk/cmdline-tools/**/bin/sdkmanager --licenses
-
-          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-          flutter config --android-sdk "$HOME/android-sdk"
+        run: yes | /Users/runner/Library/Android/sdk/cmdline-tools/**/bin/sdkmanager --licenses
 
       - name: Build tests
         run: |
@@ -86,7 +81,7 @@ jobs:
       
       - name: Run emulator and tests
         working-directory: packages/patrol/example/android
-        run: ./gradlew app:mainGroupDebugAndroidTest -Ptarget=${{ github.workspace }}/packages/patrol/example/integration_test/test_bundle.dart -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
+        run: ./gradlew app:pixel2api33DebugAndroidTest -Ptarget=${{ github.workspace }}/packages/patrol/example/integration_test/test_bundle.dart -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
 
       - name: Merge XML reports
         if: always()
